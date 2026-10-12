@@ -18,5 +18,12 @@ urlpatterns = [
     path('profiles/<int:pk>/', profile_detail, name='profile_detail'),
     path('users/most-active/',most_active_users,name='most_active_users'),
     path('posts/<int:pk>/', post_detail, name='post_detail'),
+    path('users/<int:pk>/posts/', user_posts, name='user_posts'),
+    path('posts/popular/', popular_posts, name='popular_posts'),
+    path('posts/search/', search_posts, name='search_posts'),
+    path('posts/filter/', filter_posts, name='filter_posts'),
+    path('posts/statistics/', post_statistics, name='post_statistics'),
+
+
 
 ]

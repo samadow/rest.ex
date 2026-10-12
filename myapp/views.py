@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from .models import *
 from .serializers import *
 from django.db.models import Count
+from django.db import models
+
 
 
 from django.db.models import Count
@@ -180,7 +182,7 @@ def user_patch(request, pk):
 def post_patch(request, pk):
     post = Post.objects.get(pk=pk)
 
-    serializer = PostSerializer(post,data=request.data,partial=True)
+    serializer = PostListSerializer(post,data=request.data,partial=True)
 
     if serializer.is_valid():
         serializer.save()
@@ -345,3 +347,78 @@ def post_list(request):
 
     serializer = PostListSerializer(posts, many=True)
     return Response(serializer.data)
+
+
+
+@api_view(['GET'])
+def user_posts(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    serializer = UserPostsSerializer(user)
+    return Response(serializer.data)
+
+
+
+@api_view(['GET'])
+def popular_posts(request):
+    posts = Post.objects.annotate(
+        likes_count=Count('like', distinct=True)
+    ).filter(
+        likes_count__gte=10
+    ).order_by('-likes_count')
+
+    serializer = PostListSerializer(posts, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def search_posts(request):
+    q = request.GET.get('q', '')
+
+    posts = Post.objects.filter(
+        models.Q(title__icontains=q) |
+        models.Q(content__icontains=q)
+    )
+
+    serializer = PostListSerializer(posts, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def filter_posts(request):
+    posts = Post.objects.all()
+
+    min_views = request.GET.get('min_views')
+    max_views = request.GET.get('max_views')
+    user_id = request.GET.get('user_id')
+
+    if min_views:
+        posts = posts.filter(viws__gte=min_views)
+
+    if max_views:
+        posts = posts.filter(viws__lte=max_views)
+
+    if user_id:
+        posts = posts.filter(user_id=user_id)
+
+    serializer = PostListSerializer(posts, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def post_statistics(request):
+    stats = Post.objects.aggregate(
+        total_views=Sum('viws'),
+        average_views=Avg('viws'),
+        max_views=Max('viws'),
+        min_views=Min('viws'),
+    )
+
+    return Response({
+        'total_posts': Post.objects.count(),
+        'total_views': stats['total_views'] or 0,
+        'average_views': stats['average_views'] or 0,
+        'max_views': stats['max_views'] or 0,
+        'min_views': stats['min_views'] or 0,
+        'total_likes': Like.objects.count(),
+        'total_favorites': Favorite.objects.count(),
+    })

@@ -174,3 +174,23 @@ class ProfilSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_id', 'bio',
             'city', 'birz_date', 'avatar', 'posts_count'
         ]
+        
+        
+
+class UserPostsSerializer(serializers.ModelSerializer):
+    posts = PostListSerializer(many=True, read_only=True)
+    posts_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'posts', 'posts_count']
+
+    def get_posts(self, obj):
+        return PostListSerializer(
+            Post.objects.filter(user=obj),
+            many=True
+        ).data
+
+    def get_posts_count(self, obj):
+        return Post.objects.filter(user=obj).count()
+
