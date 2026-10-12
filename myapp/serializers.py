@@ -1,6 +1,7 @@
 
 from rest_framework import serializers
-from .models import User, Post, Like, Favorite
+from .models import User, Post, Like, Favorite,Profil
+from django.db.models import Sum
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -46,3 +47,45 @@ class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = '__all__'
+        
+        
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    profile = serializers.SerializerMethodField()
+    statistics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'full_name',
+            'age', 'profile', 'statistics'
+        ]
+
+    def get_full_name(self, obj):
+        return f'{obj.first_name} {obj.last_name}'
+
+    def get_profile(self, obj):
+        profile = Profil.objects.filter(user=obj).first()
+
+        if profile:
+            return {
+                'bio': profile.bio,
+                'city': profile.city
+            }
+
+        return None
+
+    def get_statistics(self, obj):
+        posts = Post.objects.filter(user=obj)
+        
+
+        return {
+            'posts_count': posts.count(),
+            'total_views': posts.aggregate(
+                total=__import__('django.db.models', fromlist=['Sum']).Sum('viws')
+            )['total'] or 0,
+            'likes_received': Like.objects.filter(post__user=obj).count(),
+            'favorites_received': Favorite.objects.filter(post__user=obj).count()
+        }
+

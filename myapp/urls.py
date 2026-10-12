@@ -14,6 +14,8 @@ urlpatterns = [
     path('posts/<int:pk>/patch/', post_patch),
     path('likes/<int:pk>/patch/', like_patch),
     path('favorites/<int:pk>/patch/', favorite_patch),
-    path('users/most-active/', most_active_users, name='most_active'),  
+    path('users/most-active/', most_active_users, name='most_active'), 
+    path('users/<int:pk>/detail/', user_detail_get, name='user_detail_get'),
+    path('users/<int:pk>/', user_detail, name='user_detail'),
     
 ]

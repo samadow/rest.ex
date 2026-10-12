@@ -193,7 +193,7 @@ def favorite_patch(request, pk):
     return Response(serializer.errors, status=400)
 
 
-
+# xvcvbhjkl;
 @api_view(['GET'])
 def most_active_users(request):
     users = User.objects.annotate(
@@ -201,6 +201,12 @@ def most_active_users(request):
     ).order_by('-posts_count')[:10]
 
     serializer = UserSerializer(users, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def user_detail_get(request, pk):
+    user = User.objects.get(pk=pk)
+    serializer = UserDetailSerializer(user)
     return Response(serializer.data)
 
 
