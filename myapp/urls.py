@@ -23,6 +23,10 @@ urlpatterns = [
     path('posts/search/', search_posts, name='search_posts'),
     path('posts/filter/', filter_posts, name='filter_posts'),
     path('posts/statistics/', post_statistics, name='post_statistics'),
+    path('posts/author-statistics/',author_statistics,name='author_statistics'),
+    path('posts/<int:pk>/likes/', post_likes, name='post_likes'),
+    path('posts/<int:pk>/likes/', post_likes, name='post_likes'),
+    path('likes/top-posts/', top_liked_posts, name='top_liked_posts'),
 
 
 

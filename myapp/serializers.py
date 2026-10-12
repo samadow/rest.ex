@@ -94,10 +94,26 @@ class PostListSerializer(serializers.ModelSerializer):
 
 
 
+
 class LikeSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='user',
+        write_only=True
+    )
+
+    post = PostListSerializer(read_only=True)
+    post_id = serializers.PrimaryKeyRelatedField(
+        queryset=Post.objects.all(),
+        source='post',
+        write_only=True
+    )
+
     class Meta:
         model = Like
-        fields = '__all__'
+        fields = ['id', 'user', 'user_id', 'post', 'post_id', 'created_at']
+
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -194,3 +210,32 @@ class UserPostsSerializer(serializers.ModelSerializer):
     def get_posts_count(self, obj):
         return Post.objects.filter(user=obj).count()
 
+
+
+class PostLikesSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'created_at']
+
+    def get_user(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'full_name': f'{obj.user.first_name} {obj.user.last_name}'
+        }
+
+class PostLikesSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'created_at']
+
+    def get_user(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'full_name': f'{obj.user.first_name} {obj.user.last_name}'
+        }

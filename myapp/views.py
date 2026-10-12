@@ -39,30 +39,39 @@ def User_all(request):
 def post__all(request):
     if request.method == 'GET':
         posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
+        serializer = PostListSerializer(posts, many=True)
         return Response(serializer.data)
     if request.method == 'POST':
-        serializer = PostSerializer(data = request.data)
+        serializer = PostListSerializer(data = request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=201)
         return Response(serializer.errors,status=400)
 
-
-@api_view(["GET","POST"])
+@api_view(['GET', 'POST'])
 def like__all(request):
     if request.method == 'GET':
-        likes = Like.objects.all()
+        likes = Like.objects.select_related('user', 'post')
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
-    if request.method == 'POST':
-        serializer = LikeSerializer(data = request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,status=201)
-        return Response(serializer.errors,status=400)
-    
-    
+
+    serializer = LikeSerializer(data=request.data)
+
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
+        post = serializer.validated_data['post']
+
+        if Like.objects.filter(user=user, post=post).exists():
+            return Response(
+                {'error': 'Ин корбар аллакай ба ин пост Like кардааст.'},
+                status=400
+            )
+
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+    return Response(serializer.errors, status=400)
+
     
 @api_view(["GET","POST"])
 def favorite__all(request):
@@ -422,3 +431,83 @@ def post_statistics(request):
         'total_likes': Like.objects.count(),
         'total_favorites': Favorite.objects.count(),
     })
+
+
+
+@api_view(['GET'])
+def author_statistics(request):
+    users = User.objects.annotate(
+        posts_count=Count('post', distinct=True),
+        total_views=Sum('post__viws'),
+        average_views=Avg('post__viws'),
+        likes_received=Count('post__like', distinct=True)
+    )
+
+    result = []
+
+    for user in users:
+        result.append({
+            'author': {
+                'id': user.id,
+                'username': user.username,
+                'full_name': f'{user.first_name} {user.last_name}'
+            },
+            'posts_count': user.posts_count,
+            'total_views': user.total_views or 0,
+            'average_views': user.average_views or 0,
+            'likes_received': user.likes_received
+        })
+
+    return Response(result)
+
+
+
+@api_view(['GET'])
+def post_likes(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    likes = Like.objects.filter(post=post).select_related('user')
+
+    serializer = PostLikesSerializer(likes, many=True)
+
+    return Response({
+        'post_id': post.id,
+        'title': post.title,
+        'likes_count': likes.count(),
+        'likes': serializer.data
+    })
+
+
+
+@api_view(['GET'])
+def post_likes(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    likes = Like.objects.filter(post=post).select_related('user')
+
+    serializer = PostLikesSerializer(likes, many=True)
+
+    return Response({
+        'post_id': post.id,
+        'title': post.title,
+        'likes_count': likes.count(),
+        'likes': serializer.data
+    })
+
+
+@api_view(['GET'])
+def top_liked_posts(request):
+    posts = Post.objects.annotate(
+        likes_count=Count('like', distinct=True)
+    ).order_by('-likes_count')[:10]
+
+    result = []
+
+    for post in posts:
+        result.append({
+            'id': post.id,
+            'title': post.title,
+            'author': post.user.username,
+            'views': post.viws,
+            'likes_count': post.likes_count
+        })
+
+    return Response(result)
