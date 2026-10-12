@@ -99,22 +99,35 @@ def user_detail(request, pk):
     user.delete()
     return Response({'message': 'User deleted successfully'})
 
-
-@api_view(['PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 def post_detail(request, pk):
-    post = Post.objects.get(pk=pk)
+    post = get_object_or_404(Post, pk=pk)
 
-    if request.method == 'PUT':
-        serializer = PostSerializer(post, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+    if request.method == 'GET':
+        serializer = PostListSerializer(post)
+        return Response(serializer.data)
 
-    post.delete()
-    return Response({"message": "Post deleted successfully"})
+    elif request.method == 'PUT':
+        serializer = PostListSerializer(post, data=request.data)
 
+    elif request.method == 'PATCH':
+        serializer = PostListSerializer(
+            post,
+            data=request.data,
+            partial=True
+        )
 
+    elif request.method == 'DELETE':
+        post.delete()
+        return Response(
+            {'message': 'Post deleted successfully'}
+        )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+
+    return Response(serializer.errors, status=400)
 
 @api_view(['PUT', 'DELETE'])
 def like_detail(request, pk):
@@ -320,3 +333,15 @@ def users_statistics(request):
         'total_likes': Like.objects.count(),
         'total_favorites': Favorite.objects.count(),
     })
+    
+    
+
+@api_view(['GET'])
+def post_list(request):
+    posts = Post.objects.annotate(
+        likes_count=Count('like', distinct=True),
+        favorites_count=Count('favorite', distinct=True)
+    ).select_related('user')
+
+    serializer = PostListSerializer(posts, many=True)
+    return Response(serializer.data)

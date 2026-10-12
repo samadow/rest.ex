@@ -66,13 +66,31 @@ class UserDetailSerializer(serializers.ModelSerializer):
             ).count()
         }
 
-class PostSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(),source='user',write_only=True)
+class PostListSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    likes_count = serializers.IntegerField(read_only=True)
+    favorites_count = serializers.IntegerField(read_only=True)
+    is_popular = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'content', 'author',
+            'viws', 'likes_count', 'favorites_count',
+            'is_popular', 'created_at'
+        ]
+
+    def get_author(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'full_name': (
+                f'{obj.user.first_name} {obj.user.last_name}'
+            )
+        }
+
+    def get_is_popular(self, obj):
+        return obj.like_set.count() >= 10
 
 
 
